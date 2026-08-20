@@ -49,4 +49,4 @@ async function runTests() {
 }
 
 // Run tests
-runTests().catch(console.error); 
+runTests().catch((error) => console.error('Unexpected failure while testing the proxy:', error.message)); 

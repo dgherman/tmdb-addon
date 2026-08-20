@@ -3,6 +3,7 @@ const Utils = require("../utils/parseProps");
 const { getTmdbClient } = require("../utils/getTmdbClient");
 const diferentOrder = require("../static/diferentOrder.json");
 const diferentImdbId = require("../static/diferentImdbId.json");
+const { logError } = require("../utils/logError");
 
 function genSeasonsString(seasons) {
   if (seasons.length <= 20) {
@@ -135,7 +136,12 @@ async function getDefaultEpisodes(
             }
           });
         })
-        .catch(console.error);
+        .catch((error) =>
+          logError("getEpisodes: failed to fetch default season episodes", error, {
+            tmdbId,
+            seasons: el,
+          })
+        );
     })
   );
   return episodes;
@@ -166,7 +172,7 @@ async function getEpisodes(language, tmdbId, imdb_id, seasons, config = {}) {
         thumbnailConfig
       );
 
-      if (groupEpisodes.length > 0) {
+      if (Array.isArray(groupEpisodes) && groupEpisodes.length > 0) {
         return groupEpisodes;
       }
 
@@ -174,9 +180,10 @@ async function getEpisodes(language, tmdbId, imdb_id, seasons, config = {}) {
         `getEpisodes: episode group ${difOrder.episodeGroupId} for tmdbId ${tmdbId} (${difOrder.name}) returned no episodes, falling back to the default season order`
       );
     } catch (error) {
-      const status = error.response ? error.response.status : error.statusCode;
-      console.error(
-        `getEpisodes: failed to fetch episode group ${difOrder.episodeGroupId} for tmdbId ${tmdbId} (${difOrder.name})${status ? ` [HTTP ${status}]` : ""}: ${error.message}, falling back to the default season order`
+      logError(
+        "getEpisodes: failed to fetch episode group, falling back to the default season order",
+        error,
+        { tmdbId, episodeGroupId: difOrder.episodeGroupId, name: difOrder.name }
       );
     }
   }

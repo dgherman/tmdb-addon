@@ -6,6 +6,7 @@ const { transliterate } = require("transliteration");
 const { getMeta } = require("./getMeta");
 const { isMovieReleasedInRegion, isMovieReleasedDigitally } = require("./releaseFilter");
 const { rateLimitedMap, rateLimitedMapFiltered } = require("../utils/rateLimiter");
+const { logError } = require("../utils/logError");
 
 function isNonLatin(text) {
   return /[^\u0000-\u007F]/.test(text);
@@ -153,7 +154,7 @@ async function getSearch(id, type, language, query, config) {
           }
           results.forEach((el) => { candidates.push({ id: el.id, type: 'movie' }); });
         })
-        .catch(console.error);
+        .catch((error) => logError("getSearch: movie search failed", error, { type, language }));
 
       // Fallback Search
       if (candidates.length === 0) {
@@ -162,7 +163,7 @@ async function getSearch(id, type, language, query, config) {
           .then((res) => {
             res.results.forEach((el) => { candidates.push({ id: el.id, type: 'movie' }); });
           })
-          .catch(console.error);
+          .catch((error) => logError("getSearch: movie fallback search failed", error, { type, language }));
       }
 
       // Person Search
@@ -198,7 +199,7 @@ async function getSearch(id, type, language, query, config) {
           }
           results.forEach((el) => { candidates.push({ id: el.id, type: 'series' }); });
         })
-        .catch(console.error);
+        .catch((error) => logError("getSearch: series search failed", error, { type, language }));
 
       // Fallback Search TV
       if (candidates.length === 0) {
@@ -207,7 +208,7 @@ async function getSearch(id, type, language, query, config) {
           .then((res) => {
             res.results.forEach((el) => { candidates.push({ id: el.id, type: 'series' }); });
           })
-          .catch(console.error);
+          .catch((error) => logError("getSearch: series fallback search failed", error, { type, language }));
       }
 
       // Person Search TV

@@ -3,6 +3,7 @@ const { getTmdbClient } = require("../utils/getTmdbClient");
 const { getGenreList } = require("./getGenreList");
 const { parseMedia } = require("../utils/parseProps");
 const translations = require("../static/translations.json");
+const { logError } = require("../utils/logError");
 
 function getAllTranslations(key) {
     return Object.values(translations).map(lang => lang[key]).filter(Boolean);
@@ -114,7 +115,7 @@ async function getFavorites(type, language, page, genre, config) {
         .then((res) => ({
             metas: sortResults(res.results, genre).map(el => parseMedia(el, type, genreList))
         }))
-        .catch(console.error);
+        .catch((error) => logError("getFavorites: failed to fetch TMDB favorites", error, { type, language, page }));
 }
 
 async function getWatchList(type, language, page, genre, config) {
@@ -130,7 +131,7 @@ async function getWatchList(type, language, page, genre, config) {
         .then((res) => ({
             metas: sortResults(res.results, genre).map(el => parseMedia(el, type, genreList))
         }))
-        .catch(console.error);
+        .catch((error) => logError("getWatchList: failed to fetch TMDB watchlist", error, { type, language, page }));
 }
 
 function shuffleArray(array) {
