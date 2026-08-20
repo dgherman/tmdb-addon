@@ -260,7 +260,7 @@ async function getSearch(id, type, language, query, config) {
         if (result.meta) result.meta.tmdb_id = item.id;
         return result.meta;
       } catch (err) {
-        console.error(`Error fetching metadata for search result ${item.id}:`, err.message);
+        logError("getSearch: failed to fetch metadata for a search result", err, { itemId: item.id });
         return null; // rateLimitedMapFiltered filters out nulls
       }
     },

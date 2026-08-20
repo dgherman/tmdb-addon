@@ -5,6 +5,7 @@
 require("dotenv").config();
 const { getTmdbClient } = require("../utils/getTmdbClient");
 const { cache } = require("./getCache");
+const { logError } = require("../utils/logError");
 
 const RELEASE_KEY_PREFIX = 'tmdb-addon|release';
 const RELEASE_TTL = 6 * 60 * 60; // 6 hours in seconds
@@ -26,7 +27,7 @@ async function getReleaseDates(movieId, config = {}) {
                 return cached;
             }
         } catch (error) {
-            console.error(`Cache get error for ${cacheKey}:`, error.message);
+            logError("releaseFilter: cache read failed", error, { cacheKey });
         }
     }
 
@@ -40,13 +41,13 @@ async function getReleaseDates(movieId, config = {}) {
             try {
                 await cache.set(cacheKey, releaseDates, { ttl: RELEASE_TTL });
             } catch (error) {
-                console.error(`Cache set error for ${cacheKey}:`, error.message);
+                logError("releaseFilter: cache write failed", error, { cacheKey });
             }
         }
 
         return releaseDates;
     } catch (error) {
-        console.error(`Error fetching release dates for movie ${movieId}:`, error.message);
+        logError("releaseFilter: failed to fetch release dates", error, { movieId });
         return null;
     }
 }
@@ -81,7 +82,7 @@ async function isMovieReleasedInRegion(movieId, region, config = {}) {
 
         return hasValidRelease;
     } catch (error) {
-        console.error(`Error checking release dates for movie ${movieId}:`, error.message);
+        logError("releaseFilter: failed to check release dates", error, { movieId });
         return true;
     }
 }
@@ -116,7 +117,7 @@ async function isMovieReleasedDigitally(movieId, config = {}) {
 
         return false;
     } catch (error) {
-        console.error(`Error checking digital release for movie ${movieId}:`, error.message);
+        logError("releaseFilter: failed to check the digital release", error, { movieId });
         return true;
     }
 }

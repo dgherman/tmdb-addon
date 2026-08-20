@@ -6,6 +6,7 @@ const FALLBACK_MOVIE_GENRES = require("../static/fallback-genres-movie.json");
 const FALLBACK_TV_GENRES = require("../static/fallback-genres-series.json");
 
 const { cacheWrap } = require('./getCache');
+const { logError } = require("../utils/logError");
 
 async function getGenreList(language, type, config = {}) {
   const cacheKey = `genres:${language}:${type}`;
@@ -34,7 +35,7 @@ async function getGenreList(language, type, config = {}) {
         console.warn(`TMDB API key not available or invalid, using fallback ${type} genres`);
         return type === "movie" ? FALLBACK_MOVIE_GENRES : FALLBACK_TV_GENRES;
       }
-      console.error(`Error fetching ${type} genres:`, error.message);
+      logError("getGenreList: failed to fetch genres", error, { type, language });
       return type === "movie" ? FALLBACK_MOVIE_GENRES : FALLBACK_TV_GENRES;
     }
   }, { ttl: 30 * 24 * 60 * 60 }); // Cache for 30 days

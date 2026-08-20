@@ -6,6 +6,7 @@ const { getLogo, getTvLogo } = require("./getLogo");
 const { getImdbRating } = require("./getImdbRating");
 const { getCachedAgeRating } = require("./getAgeRating");
 const { checkSeasonsAndReport } = require("../utils/checkSeasons");
+const { logError, logWarning } = require("../utils/logError");
 const { ramMetaCache, ramImdbCache } = require("./getCache");
 
 const blacklistLogoUrls = ["https://assets.fanart.tv/fanart/tv/0/hdtvlogo/-60a02798b7eea.png"];
@@ -99,7 +100,7 @@ async function getCachedImdbRating(imdbId, type) {
         }
         return rating;
     } catch (err) {
-        console.error(`Error fetching IMDb rating for ${imdbId}:`, err.message);
+        logError("getMeta: failed to fetch the IMDb rating", err, { imdbId, type });
         return null;
     }
 }
@@ -184,7 +185,7 @@ const buildMovieResponse = async (res, type, language, tmdbId, config = {}) => {
         : getLogo(tmdbId, language, res.original_language, config);
 
     const logo = await logoFetcher.catch(e => {
-        console.warn(`Error fetching logo for movie ${tmdbId}:`, e.message);
+        logWarning("getMeta: failed to fetch the movie logo", e, { tmdbId });
         return null;
     });
 
@@ -194,7 +195,7 @@ const buildMovieResponse = async (res, type, language, tmdbId, config = {}) => {
         getCachedImdbRating(res.external_ids?.imdb_id, type),
         (res.belongs_to_collection && res.belongs_to_collection.id)
             ? fetchCollectionData(moviedb, res.belongs_to_collection.id, language, tmdbId).catch((e) => {
-                console.warn(`Error fetching collection data for movie ${tmdbId} and collection ${res.belongs_to_collection.id}:`, e.message);
+                logWarning("getMeta: failed to fetch collection data", e, { tmdbId, collectionId: res.belongs_to_collection.id });
                 return null;
             })
             : null
@@ -293,7 +294,7 @@ const buildTvResponse = async (res, type, language, tmdbId, config = {}) => {
         : getTvLogo(res.external_ids?.tvdb_id, res.id, language, res.original_language, config);
 
     const logo = await logoFetcher.catch(e => {
-        console.warn(`Error fetching logo for series ${tmdbId}:`, e.message);
+        logWarning("getMeta: failed to fetch the series logo", e, { tmdbId });
         return null;
     });
 
@@ -302,12 +303,12 @@ const buildTvResponse = async (res, type, language, tmdbId, config = {}) => {
         Utils.parseMediaImage(type, tmdbId, res.poster_path, language, rpdbkey, "poster", rpdbMediaTypes, topposterskey, toppostersConfig),
         getCachedImdbRating(res.external_ids?.imdb_id, type),
         getEpisodes(language, tmdbId, res.external_ids?.imdb_id, res.seasons, config).catch(e => {
-            console.warn(`Error fetching episodes for series ${tmdbId}:`, e.message);
+            logWarning("getMeta: failed to fetch episodes", e, { tmdbId });
             return [];
         }),
         (res.belongs_to_collection && res.belongs_to_collection.id)
             ? fetchCollectionData(moviedb, res.belongs_to_collection.id, language, tmdbId).catch((e) => {
-                console.warn(`Error fetching collection data for movie ${tmdbId} and collection ${res.belongs_to_collection.id}:`, e.message);
+                logWarning("getMeta: failed to fetch collection data", e, { tmdbId, collectionId: res.belongs_to_collection.id });
                 return null;
             })
             : null
@@ -434,7 +435,7 @@ async function getMeta(type, language, tmdbId, config = {}) {
         return { meta };
     } catch (error) {
         // Log and return empty meta instead of throwing to avoid crashing the process
-        console.error(`Error in getMeta: ${error?.message || error}`);
+        logError("getMeta: failed to build meta", error, { type, tmdbId });
         return { meta: {} };
     }
 }

@@ -9,7 +9,7 @@ const { getManifest, DEFAULT_LANGUAGE } = require("./lib/getManifest");
 const { getMeta } = require("./lib/getMeta");
 const { getTmdb } = require("./lib/getTmdb");
 const { cacheWrapMeta } = require("./lib/getCache");
-const { logError, redactUrl } = require("./utils/logError");
+const { logError } = require("./utils/logError");
 const { getTrending } = require("./lib/getTrending");
 const { parseConfig, getRpdbPoster } = require("./utils/parseProps");
 const { getRequestToken, getSessionId } = require("./lib/getSession");
@@ -95,7 +95,7 @@ addon.get("/request_token", async function (req, res) {
     respond(res, requestToken);
   } catch (error) {
     logError('index: failed to get a TMDB request token', error);
-    res.status(500).json({ error: redactUrl(error.message) || 'Internal server error' });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -126,7 +126,7 @@ addon.get("/session_id", async function (req, res) {
     respond(res, sessionId);
   } catch (error) {
     logError('index: failed to get a TMDB session id', error);
-    res.status(500).json({ error: redactUrl(error.message) || 'Internal server error' });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -154,7 +154,7 @@ addon.get("/trakt_auth_url", async function (req, res) {
     res.json({ authUrl, state });
   } catch (error) {
     logError('index: failed to build the Trakt authorization URL', error);
-    res.status(500).json({ error: redactUrl(error.message) || 'Internal server error' });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -200,7 +200,7 @@ addon.get("/trakt_access_token", async function (req, res) {
     res.json(response);
   } catch (error) {
     logError('index: failed to exchange the Trakt authorization code', error);
-    res.status(500).json({ error: redactUrl(error.message) || 'Internal server error' });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -243,7 +243,7 @@ addon.get("/:catalogChoices?/manifest.json", async function (req, res) {
     respond(res, manifest, cacheOpts);
   } catch (error) {
     logError('index: failed to generate the manifest', error);
-    res.status(500).json({ error: redactUrl(error.message) || 'Internal server error' });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -303,7 +303,9 @@ addon.get("/:catalogChoices?/catalog/:type/:id/:extra?.json", async function (re
       });
       return;
     }
-    res.status(404).send((e || {}).message || "Not found");
+    // The detail stays server side: the client gets a generic 404.
+    logError('index: catalog route failed', e, { type, id, genre });
+    res.status(404).send("Not found");
     return;
   }
   const cacheOpts = {

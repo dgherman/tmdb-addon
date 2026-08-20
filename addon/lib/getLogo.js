@@ -5,6 +5,7 @@ const baseUrl = "http://webservice.fanart.tv/v3/";
 const fanart = new FanartTvApi({ apiKey, baseUrl });
 
 const { getTmdbClient } = require("../utils/getTmdbClient");
+const { logError } = require("../utils/logError");
 const TARGET_ASPECT_RATIO = 4.0;
 
 function pickLogo(logos, language, originalLanguage) {
@@ -108,7 +109,7 @@ async function getLogo(tmdbId, language, originalLanguage, config = {}) {
     return picked?.url || '';
   } catch (error) {
     if (error.message !== "TMDB_API_KEY_MISSING" && error.message !== "TMDB_API_KEY_INVALID") {
-      console.error(`Error fetching logo for movie ${tmdbId}:`, error.message);
+      logError("getLogo: failed to fetch the movie logo", error, { tmdbId, language });
     }
     return '';
   }
@@ -159,7 +160,7 @@ async function getTvLogo(tvdb_id, tmdbId, language, originalLanguage, config = {
     return picked?.url || '';
   } catch (error) {
     if (error.message !== "TMDB_API_KEY_MISSING" && error.message !== "TMDB_API_KEY_INVALID") {
-      console.error(`Error fetching logo for series ${tmdbId}:`, error.message);
+      logError("getLogo: failed to fetch the series logo", error, { tmdbId, language });
     }
     return '';
   }

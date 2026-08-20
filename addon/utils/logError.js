@@ -26,23 +26,39 @@ const SECRET_QUERY_KEYS = [
   "key",
 ];
 
-// Matches `?secret=value` / `&secret=value`, longest key names first so that
-// `api_key` is never partially matched as `key`.
+// Matches `?secret=value`, `&secret=value` and `#secret=value` (OAuth implicit
+// flows put credentials in the fragment), longest key names first so that
+// `api_key` is never partially matched as `key`. A parameter with no value at
+// all is normalized to a redacted one, so `?token` cannot slip through as a
+// hint that a value was stripped elsewhere.
 const SECRET_QUERY_PATTERN = new RegExp(
-  `([?&](?:${SECRET_QUERY_KEYS.join("|")})=)([^&\\s"'\`<>]*)`,
+  `([?&#](?:${SECRET_QUERY_KEYS.join("|")}))(=[^&#\\s"'\`<>]*)?`,
   "gi"
 );
 
-// Matches embedded basic-auth credentials, e.g. `https://user:pass@host/path`
-// or `mongodb://user:pass@host`.
-const BASIC_AUTH_PATTERN = /(:\/\/[^/\s:@]+:)([^/\s@]+)(@)/g;
+// Matches embedded basic-auth credentials, e.g. `https://user:pass@host/path`,
+// `mongodb+srv://user:pass@host` or `redis://:pass@host`, where the username is
+// empty. Both halves are redacted: the username is a credential in its own
+// right and identifies the account being used.
+const BASIC_AUTH_PATTERN = /(:\/\/)([^/\s:@]*):([^/\s@]*)(@)/g;
+
+// `Authorization: Bearer x`, `Authorization: Basic x`, or a bare
+// `Bearer x` / `Basic x` anywhere in a string - error messages and stacks can
+// echo a header without the header name.
+const AUTH_SCHEME_PATTERN = /\b(Bearer|Basic|Token)\s+([A-Za-z0-9._~+/=-]{4,})/gi;
+
+// JSON-ish body secrets: `"client_secret":"value"` or `client_secret: 'value'`.
+const JSON_SECRET_PATTERN = new RegExp(
+  `(["']?(?:${SECRET_QUERY_KEYS.join("|")})["']?\\s*[:=]\\s*)(["'])([^"']*)(["'])`,
+  "gi"
+);
 
 const REDACTED = "[REDACTED]";
 
 /**
  * Strip credential-bearing material from a URL, or from any string that may
- * contain one (an error message, for example). Values are replaced rather than
- * dropped so the log stays diagnostic.
+ * contain one (an error message or a stack, for example). Values are replaced
+ * rather than dropped so the log stays diagnostic.
  *
  * @param {any} value - A URL or an arbitrary string.
  * @returns {any} - The redacted string, or the value unchanged if not a string.
@@ -51,8 +67,10 @@ function redactUrl(value) {
   if (typeof value !== "string") return value;
 
   return value
-    .replace(SECRET_QUERY_PATTERN, `$1${REDACTED}`)
-    .replace(BASIC_AUTH_PATTERN, `$1${REDACTED}$3`);
+    .replace(SECRET_QUERY_PATTERN, `$1=${REDACTED}`)
+    .replace(BASIC_AUTH_PATTERN, `$1${REDACTED}:${REDACTED}$4`)
+    .replace(AUTH_SCHEME_PATTERN, `$1 ${REDACTED}`)
+    .replace(JSON_SECRET_PATTERN, `$1$2${REDACTED}$4`);
 }
 
 /**
@@ -74,7 +92,7 @@ function getErrorStatus(error) {
  * @param {any} error - The rejected value.
  * @param {Object} [context] - Extra key/value pairs to include (ids, seasons...).
  */
-function logError(operation, error, context = {}) {
+function formatError(operation, error, context = {}) {
   const details = Object.entries(context)
     .filter(([, value]) => value !== undefined && value !== null && value !== "")
     .map(([key, value]) => `${key}=${redactUrl(String(value))}`)
@@ -82,9 +100,24 @@ function logError(operation, error, context = {}) {
 
   const message = redactUrl(error?.message) ?? "unknown error";
 
-  console.error(
-    `${operation}${details ? ` (${details})` : ""} [${getErrorStatus(error)}]: ${message}`
-  );
+  return `${operation}${details ? ` (${details})` : ""} [${getErrorStatus(error)}]: ${message}`;
 }
 
-module.exports = { getErrorStatus, logError, redactUrl };
+function logError(operation, error, context = {}) {
+  // safe-log-reviewed: formatError returns a redacted string, never the error itself
+  console.error(formatError(operation, error, context));
+}
+
+/**
+ * The same, at warning severity, for failures the caller recovers from.
+ *
+ * @param {string} operation - What was being attempted.
+ * @param {any} error - The rejected value.
+ * @param {Object} [context] - Extra key/value pairs to include.
+ */
+function logWarning(operation, error, context = {}) {
+  // safe-log-reviewed: formatError returns a redacted string, never the error itself
+  console.warn(formatError(operation, error, context));
+}
+
+module.exports = { getErrorStatus, logError, logWarning, formatError, redactUrl };

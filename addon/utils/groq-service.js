@@ -1,4 +1,5 @@
 const axios = require('axios');
+const { logError, logWarning } = require('./logError');
 
 class GroqService {
     constructor() {
@@ -72,7 +73,7 @@ Response: Interstellar, Tenet, Arrival, Looper, Primer, Twelve Monkeys, Donnie D
             return this._parseTitles(response.data.choices[0]?.message?.content);
 
         } catch (primaryError) {
-            console.error(`Primary model failed (${primaryError.message}). Switching to fallback...`);
+            logWarning(`GroqService: primary model ${this.primaryModel} failed, switching to the fallback model`, primaryError);
 
             try {
                 const fallbackResponse = await this._fetchAIResponse(this.fallbackModel, prompt);
@@ -80,7 +81,7 @@ Response: Interstellar, Tenet, Arrival, Looper, Primer, Twelve Monkeys, Donnie D
                 return this._parseTitles(fallbackResponse.data.choices[0]?.message?.content);
 
             } catch (fallbackError) {
-                console.error("Critical: Both models failed.", fallbackError.message);
+                logError("GroqService: both the primary and the fallback model failed", fallbackError);
                 return [];
             }
         }

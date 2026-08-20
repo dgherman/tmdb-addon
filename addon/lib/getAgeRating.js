@@ -2,6 +2,7 @@ require("dotenv").config();
 const { getTmdbClient } = require("../utils/getTmdbClient");
 const Utils = require("../utils/parseProps");
 const { ramAgeRatingCache } = require("./getCache");
+const { logError } = require("../utils/logError");
 
 /**
  * Get age rating for a movie from TMDB
@@ -22,7 +23,7 @@ async function getMovieAgeRating(tmdbId, language, config = {}) {
 
         return ageRating || null;
     } catch (error) {
-        console.error(`Error fetching age rating for movie ${tmdbId}:`, error.message);
+        logError("getAgeRating: failed to fetch the movie age rating", error, { tmdbId });
         return null;
     }
 }
@@ -56,7 +57,7 @@ async function getTvAgeRating(tmdbId, language, config = {}) {
 
         return ageRating || null;
     } catch (error) {
-        console.error(`Error fetching age rating for TV show ${tmdbId}:`, error.message);
+        logError("getAgeRating: failed to fetch the series age rating", error, { tmdbId });
         return null;
     }
 }
@@ -85,7 +86,7 @@ async function getCachedAgeRating(tmdbId, type, language, config) {
         }
         return rating;
     } catch (err) {
-        console.error(`Error fetching age rating for ${type} ${tmdbId}:`, err.message);
+        logError("getAgeRating: failed to fetch the age rating", err, { type, tmdbId });
         return null;
     }
 }
