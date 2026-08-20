@@ -4,6 +4,7 @@ const { getGenreList } = require("./getGenreList");
 const { getCatalogPreview } = require("./getCatalogPreview");
 const { isMovieReleasedInRegion, isMovieReleasedDigitally } = require("./releaseFilter");
 const { rateLimitedMapFiltered } = require("../utils/rateLimiter");
+const { logError } = require("../utils/logError");
 
 async function getTrending(type, language, page, genre, config) {
   const moviedb = getTmdbClient(config);
@@ -115,7 +116,7 @@ async function getTrending(type, language, page, genre, config) {
     // Limit to 20 results max
     return { metas: metas.slice(0, 20) };
   } catch (error) {
-    console.error(error);
+    logError("getTrending: failed to build trending catalog", error, { type, language, page });
     const host = process.env.HOST_NAME ? process.env.HOST_NAME.replace(/\/$/, '') : '';
     const posterUrl = `${host}/no-content.png?v=${Date.now()}`;
     return {

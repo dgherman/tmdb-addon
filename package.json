@@ -11,6 +11,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "start": "node addon/server.js",
+    "test": "node --test \"addon/**/*.test.js\"",
     "test:proxy": "node test-proxy.js"
   },
   "repository": {
