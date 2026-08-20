@@ -1,6 +1,7 @@
 const axios = require("axios");
 const { getMeta } = require("../lib/getMeta");
 const { rateLimitedMapFiltered } = require("./rateLimiter");
+const { logError } = require("./logError");
 
 async function fetchMDBListItems(listId, apiKey, language, page) {
   const offset = (page * 20) - 20;
@@ -12,7 +13,7 @@ async function fetchMDBListItems(listId, apiKey, language, page) {
       ...(response.data.shows || [])
     ];
   } catch (err) {
-    console.error("Error retrieving MDBList items:", err.message, err);
+    logError("fetchMDBListItems: failed to retrieve MDBList items", err, { listId, page });
     return [];
   }
 }
@@ -32,7 +33,7 @@ async function getGenresFromMDBList(listId, apiKey) {
     ].sort();
     return genres;
   } catch (err) {
-    console.error("ERROR in getGenresFromMDBList:", err);
+    logError("getGenresFromMDBList: failed to derive genres from the MDBList list", err, { listId });
     return [];
   }
 }
@@ -83,7 +84,7 @@ async function parseMDBListItems(items, type, genreFilter, language, config = {}
         const result = await getMeta(item.type, language, item.id, config);
         return result.meta;
       } catch (err) {
-        console.error(`Error fetching metadata for ${item.id}:`, err.message);
+        logError("parseMDBListItems: failed to fetch metadata for an item", err, { itemId: item.id });
         return null;
       }
     },

@@ -1,5 +1,6 @@
 require('dotenv').config()
 const { get, post } = require('../utils/httpClient')
+const { logError, redactUrl } = require('../utils/logError')
 
 const TRAKT_CLIENT_ID = process.env.TRAKT_CLIENT_ID
 const TRAKT_CLIENT_SECRET = process.env.TRAKT_CLIENT_SECRET
@@ -59,8 +60,8 @@ async function getTraktAccessToken(code, redirectUri = null) {
 
     return response.data || response
   } catch (err) {
-    console.error('Erro ao obter access token do Trakt:', err)
-    return { success: false, error: err.message || 'Failed to authenticate with Trakt' }
+    logError('getTraktAccessToken: failed to obtain a Trakt access token', err)
+    return { success: false, error: redactUrl(err.message) || 'Failed to authenticate with Trakt' }
   }
 }
 
@@ -87,8 +88,8 @@ async function refreshTraktAccessToken(refreshToken, redirectUri = null) {
 
     return response.data || response
   } catch (err) {
-    console.error('Erro ao renovar access token do Trakt:', err)
-    return { success: false, error: err.message || 'Failed to refresh Trakt token' }
+    logError('refreshTraktAccessToken: failed to refresh the Trakt access token', err)
+    return { success: false, error: redactUrl(err.message) || 'Failed to refresh Trakt token' }
   }
 }
 

@@ -5,6 +5,7 @@ const { getGenresFromMDBList } = require("../utils/mdbList");
 const packageJson = require("../../package.json");
 const catalogsTranslations = require("../static/translations.json");
 const CATALOG_TYPES = require("../static/catalog-types.json");
+const { logError } = require("../utils/logError");
 const DEFAULT_LANGUAGE = "en-US";
 
 function generateArrayOfYears(maxYears) {
@@ -138,7 +139,7 @@ async function getManifest(config) {
     const sortedGenres = genres.map(el => el.name).sort();
     return sortedGenres;
   }).catch(err => {
-    console.error("Error fetching movie genres:", err.message);
+    logError("getManifest: failed to fetch movie genres", err, { language });
     return [];
   });
   const genres_series = await getGenreList(language, "series", config).then(genres => {
@@ -149,7 +150,7 @@ async function getManifest(config) {
     const sortedGenres = genres.map(el => el.name).sort();
     return sortedGenres;
   }).catch(err => {
-    console.error("Error fetching series genres:", err.message);
+    logError("getManifest: failed to fetch series genres", err, { language });
     return [];
   })
 

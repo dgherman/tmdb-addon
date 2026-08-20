@@ -9,6 +9,7 @@ const { getManifest, DEFAULT_LANGUAGE } = require("./lib/getManifest");
 const { getMeta } = require("./lib/getMeta");
 const { getTmdb } = require("./lib/getTmdb");
 const { cacheWrapMeta } = require("./lib/getCache");
+const { logError } = require("./utils/logError");
 const { getTrending } = require("./lib/getTrending");
 const { parseConfig, getRpdbPoster } = require("./utils/parseProps");
 const { getRequestToken, getSessionId } = require("./lib/getSession");
@@ -93,8 +94,8 @@ addon.get("/request_token", async function (req, res) {
 
     respond(res, requestToken);
   } catch (error) {
-    console.error('Error getting request token:', error);
-    res.status(500).json({ error: error.message || 'Internal server error' });
+    logError('index: failed to get a TMDB request token', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -124,8 +125,8 @@ addon.get("/session_id", async function (req, res) {
 
     respond(res, sessionId);
   } catch (error) {
-    console.error('Error getting session ID:', error);
-    res.status(500).json({ error: error.message || 'Internal server error' });
+    logError('index: failed to get a TMDB session id', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -152,8 +153,8 @@ addon.get("/trakt_auth_url", async function (req, res) {
     res.setHeader("Content-Type", "application/json");
     res.json({ authUrl, state });
   } catch (error) {
-    console.error('Error getting Trakt auth URL:', error);
-    res.status(500).json({ error: error.message || 'Internal server error' });
+    logError('index: failed to build the Trakt authorization URL', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -198,8 +199,8 @@ addon.get("/trakt_access_token", async function (req, res) {
     res.setHeader("Content-Type", "application/json");
     res.json(response);
   } catch (error) {
-    console.error('Error getting Trakt access token:', error);
-    res.status(500).json({ error: error.message || 'Internal server error' });
+    logError('index: failed to exchange the Trakt authorization code', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -241,8 +242,8 @@ addon.get("/:catalogChoices?/manifest.json", async function (req, res) {
     };
     respond(res, manifest, cacheOpts);
   } catch (error) {
-    console.error('Error generating manifest:', error);
-    res.status(500).json({ error: error.message || 'Internal server error' });
+    logError('index: failed to generate the manifest', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -302,7 +303,9 @@ addon.get("/:catalogChoices?/catalog/:type/:id/:extra?.json", async function (re
       });
       return;
     }
-    res.status(404).send((e || {}).message || "Not found");
+    // The detail stays server side: the client gets a generic 404.
+    logError('index: catalog route failed', e, { type, id, genre });
+    res.status(404).send("Not found");
     return;
   }
   const cacheOpts = {
@@ -356,7 +359,7 @@ addon.get("/:catalogChoices?/meta/:type/:id.json", async function (req, res) {
       if (e.message && (e.message.includes("404") || e.message.toLowerCase().includes("not found"))) {
         res.status(404).json({ error: "Content not found on TMDB" });
       } else {
-        console.error(`Error in meta route for ${type} ${tmdbId}:`, e);
+        logError('index: meta route failed', e, { type, tmdbId });
         res.status(500).json({ error: "Internal server error" });
       }
     }
@@ -394,7 +397,7 @@ addon.get("/:catalogChoices?/meta/:type/:id.json", async function (req, res) {
       if (e.message && (e.message.includes("404") || e.message.toLowerCase().includes("not found"))) {
         res.status(404).json({ error: "Content not found on TMDB" });
       } else {
-        console.error(`Error in meta route for ${type} ${id}:`, e);
+        logError('index: meta route failed', e, { type, id });
         res.status(500).json({ error: "Internal server error" });
       }
     }
@@ -421,7 +424,7 @@ addon.get("/api/proxy/status", async function (req, res) {
 
     respond(res, proxyStatus);
   } catch (error) {
-    console.error('Error checking proxy status:', error);
+    logError('index: failed to check the proxy status', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -445,7 +448,7 @@ addon.get("/api/image/blur", async function (req, res) {
 
     res.send(blurredImageBuffer);
   } catch (error) {
-    console.error('Error in blur route:', error);
+    logError('index: blur route failed', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -461,7 +464,7 @@ addon.post("/api/stats/track-user", async function (req, res) {
     res.setHeader("Content-Type", "application/json");
     res.json({ success: true, count });
   } catch (error) {
-    console.error('Error tracking user:', error);
+    logError('index: failed to track the user', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -477,7 +480,7 @@ addon.get("/api/stats/users", async function (req, res) {
     
     res.json({ count });
   } catch (error) {
-    console.error('Error getting user count:', error);
+    logError('index: failed to get the user count', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -503,7 +506,7 @@ addon.post("/api/stats/report-users", async function (req, res) {
     res.setHeader("Content-Type", "application/json");
     res.json({ success: true });
   } catch (error) {
-    console.error('Error reporting external users:', error);
+    logError('index: failed to report external users', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -511,7 +514,7 @@ addon.post("/api/stats/report-users", async function (req, res) {
 // Middleware para rastrear usuários automaticamente em requisições ao manifest
 addon.use('/manifest.json', async function (req, res, next) {
   // Rastreia em background sem bloquear a resposta
-  trackUser(req).catch(err => console.error('Background user tracking error:', err));
+  trackUser(req).catch(err => logError('index: background user tracking failed', err));
   next();
 });
 

@@ -2,6 +2,7 @@ const cacheManager = require('cache-manager');
 const redisStore = require('cache-manager-ioredis');
 const Redis = require('ioredis');
 const { mongoDbStore } = require('@tirke/node-cache-manager-mongodb');
+const { logError } = require('../utils/logError');
 
 const GLOBAL_KEY_PREFIX = 'tmdb-addon';
 const META_KEY_PREFIX = `${GLOBAL_KEY_PREFIX}|meta`;
@@ -84,7 +85,7 @@ async function initiateMongoCache() {
     console.log('MongoDB cache conectado com sucesso');
     return mongoCache;
   } catch (error) {
-    console.error('Erro ao conectar MongoDB cache:', error);
+    logError('initMongoCache: failed to connect to the MongoDB cache', error);
     return null;
   }
 }
@@ -125,7 +126,7 @@ async function cacheWrapMongo(key, method, ttl) {
   try {
     return await mongo.wrap(key, method, { ttl });
   } catch (error) {
-    console.error(`Erro no cache MongoDB para chave ${key}:`, error);
+    logError('cacheWrapMongo: MongoDB cache operation failed', error, { key });
     // Em caso de erro, executa o método sem cache
     return method();
   }
@@ -147,7 +148,7 @@ async function closeConnections() {
     try {
       await redisInstance.quit();
     } catch (error) {
-      console.error("Error closing Redis connection:", error);
+      logError("closeRedisConnection: failed to close the Redis connection", error);
     }
   }
   // O mongoCache gerencia suas próprias conexões através do store

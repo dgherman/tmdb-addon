@@ -6,6 +6,7 @@
 
 const DEFAULT_BATCH_SIZE = 5;
 const DEFAULT_DELAY_MS = 200; // 200ms between batches = ~25 req/sec max
+const { logError } = require("./logError");
 
 /**
  * Sleep for a given number of milliseconds
@@ -57,7 +58,7 @@ async function rateLimitedMap(items, fn, options = {}) {
                 })
                 .catch(error => {
                     // Log error but don't fail the entire batch
-                    console.error(`Rate limited operation failed for item at index ${globalIndex}:`, error.message);
+                    logError("rateLimiter: a rate limited operation failed", error, { index: globalIndex });
                     results[globalIndex] = null;
                     return null;
                 });

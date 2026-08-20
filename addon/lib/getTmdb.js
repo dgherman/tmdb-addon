@@ -1,5 +1,6 @@
 require('dotenv').config()
 const { getTmdbClient } = require('../utils/getTmdbClient')
+const { logError } = require("../utils/logError");
 
 async function getTmdb(type, imdbId, config = {}) {
   try {
@@ -21,7 +22,7 @@ async function getTmdb(type, imdbId, config = {}) {
     }
   } catch (err) {
     if (err.message !== "TMDB_API_KEY_MISSING" && err.message !== "TMDB_API_KEY_INVALID") {
-      console.error(`Error in getTmdb conversion for ${imdbId}:`, err.message);
+      logError("getTmdb: failed to convert the IMDb id", err, { imdbId, type });
     }
     return null;
   }

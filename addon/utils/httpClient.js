@@ -1,6 +1,7 @@
 const axios = require('axios');
 const https = require('https');
 const http = require('http');
+const { redactUrl, logError } = require('./logError');
 
 // Proxy configuration
 const PROXY_CONFIG = {
@@ -33,7 +34,7 @@ function shouldUseProxy(url) {
     const urlObj = new URL(url);
     return TMDB_DOMAINS.some(domain => urlObj.hostname.includes(domain));
   } catch (error) {
-    console.warn('Error parsing URL for proxy:', error.message);
+    console.warn('Error parsing URL for proxy:', redactUrl(error.message));
     return false;
   }
 }
@@ -52,7 +53,7 @@ function createAxiosInstance(url) {
   };
 
   if (shouldUseProxy(url)) {
-    console.log(`Using proxy for: ${url}`);
+    console.log(`Using proxy for: ${redactUrl(url)}`);
     
     const proxyConfig = {
       host: PROXY_CONFIG.host,
@@ -119,7 +120,7 @@ async function testProxy() {
     console.log('Proxy working correctly');
     return true;
   } catch (error) {
-    console.error('Error testing proxy:', error.message);
+    logError('testProxy: proxy connection test failed', error);
     return false;
   }
 }

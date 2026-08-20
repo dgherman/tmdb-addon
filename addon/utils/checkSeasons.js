@@ -1,6 +1,7 @@
 const axios = require('axios');
 const { cache } = require("../lib/getCache");
 const diferentOrder = require("../static/diferentOrder.json");
+const { logError } = require("./logError");
 
 const CHECK_INTERVAL_DAYS = 7; // You can adjust as needed
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
@@ -83,7 +84,7 @@ async function issueExistsOnGithub(title, tmdbId) {
     return false;
   } catch (e) {
     // Se houver erro (ex: rate limit), assumir que a issue pode existir para evitar duplicatas
-    console.error(`Error checking existing issues for TMDB ID ${tmdbId}:`, e.message);
+    logError("checkSeasons: failed to check existing GitHub issues", e, { tmdbId });
     if (e.response && e.response.status === 403) {
       console.error('GitHub API rate limit exceeded. Assuming issue exists to prevent duplicates.');
       return true; // Retorna true para evitar criar duplicatas quando há rate limit
@@ -100,7 +101,7 @@ function existsInDiferentOrder(tmdbId) {
       String(item.tmdbId) === tmdbIdStr
     );
   } catch (e) {
-    console.error('Error reading diferentOrder.json:', e.message);
+    logError("checkSeasons: failed to read diferentOrder.json", e);
     return false;
   }
 }
@@ -252,7 +253,7 @@ async function checkSeasonsAndReport(tmdbId, imdbId, resp, name) {
         );
         console.log(`Issue created successfully for TMDB ID ${tmdbId}`);
       } catch (error) {
-        console.error(`Error creating issue for TMDB ID ${tmdbId}:`, error.message);
+        logError("checkSeasons: failed to create a GitHub issue", error, { tmdbId });
       }
     }
   }

@@ -1,6 +1,7 @@
 require('dotenv').config()
 const { get } = require('../utils/httpClient')
 const { getMeta } = require('./getMeta')
+const { logError } = require('../utils/logError')
 
 async function getTraktWatchlist(type, language, page, genre, accessToken) {
   if (!accessToken) {
@@ -38,13 +39,16 @@ async function getTraktWatchlist(type, language, page, genre, accessToken) {
           metas.push(meta.meta)
         }
       } catch (err) {
-        console.error(`Erro ao processar item do Trakt:`, err)
+        logError('getTraktWatchlist: failed to process a watchlist item', err, {
+          type,
+          tmdbId: type === 'movie' ? item.movie?.ids?.tmdb : item.show?.ids?.tmdb,
+        })
       }
     }
 
     return { metas }
   } catch (err) {
-    console.error('Erro ao buscar watchlist do Trakt:', err)
+    logError('getTraktWatchlist: failed to fetch the Trakt watchlist', err, { type, language, page })
     throw err
   }
 }
@@ -79,13 +83,16 @@ async function getTraktRecommendations(type, language, page, genre, accessToken)
           metas.push(meta.meta)
         }
       } catch (err) {
-        console.error(`Erro ao processar recomendação do Trakt:`, err)
+        logError('getTraktRecommendations: failed to process a recommendation', err, {
+          type,
+          tmdbId: item.ids?.tmdb,
+        })
       }
     }
 
     return { metas }
   } catch (err) {
-    console.error('Erro ao buscar recomendações do Trakt:', err)
+    logError('getTraktRecommendations: failed to fetch Trakt recommendations', err, { type, language, page })
     throw err
   }
 }

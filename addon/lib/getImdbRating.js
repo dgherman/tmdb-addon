@@ -1,4 +1,5 @@
 const axios = require('axios');
+const { logError } = require('../utils/logError');
 
 async function getImdbRating(imdbId, type) {
   try {
@@ -8,7 +9,7 @@ async function getImdbRating(imdbId, type) {
     const data = response.data.meta;
     return data?.imdbRating || undefined
   } catch (error) {
-    console.error('Error fetching data from Cinemeta:', error);
+    logError('getImdbRating: failed to fetch data from Cinemeta', error, { imdbId, type });
     return null;
   }
 }

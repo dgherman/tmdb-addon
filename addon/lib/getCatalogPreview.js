@@ -1,4 +1,5 @@
 const Utils = require("../utils/parseProps");
+const { logWarning } = require("../utils/logError");
 
 async function getCatalogPreview(moviedb, item, type, language, genreList, config = {}) {
   const preview = {
@@ -40,7 +41,7 @@ async function getCatalogPreview(moviedb, item, type, language, genreList, confi
       app_extras: { cast: Utils.parseCast(credits, castCount) }
     };
   } catch (error) {
-    console.warn(`Error enriching catalog metadata for ${item.id}:`, error.message);
+    logWarning("getCatalogPreview: failed to enrich catalog metadata", error, { itemId: item.id });
     return preview;
   }
 }

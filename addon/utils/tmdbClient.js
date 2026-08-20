@@ -1,5 +1,6 @@
 const { MovieDb } = require('moviedb-promise');
 const { createAxiosInstance } = require('./httpClient');
+const { logError, redactUrl } = require('./logError');
 
 /**
  * Custom TMDB client with proxy support
@@ -31,15 +32,18 @@ class TMDBClient extends MovieDb {
           apiError.statusCode = 401;
           apiError.userMessage = `TMDB API Key is invalid or expired: ${errorMessage}`;
           apiError.originalError = error;
-          console.error(`TMDB API key invalid for ${url}:`, errorMessage);
+          logError('TMDBClient: TMDB rejected the API key', error, { url: redactUrl(url), detail: errorMessage });
           throw apiError;
         }
         
         // Trata outros erros HTTP
         if (error.response) {
-          console.error(`TMDB API error for ${url}:`, error.response.status, error.response.data?.status_message || error.message);
+          logError('TMDBClient: TMDB request failed', error, {
+            url: redactUrl(url),
+            detail: error.response.data?.status_message,
+          });
         } else {
-          console.error(`Error in TMDB request for ${url}:`, error.message);
+          logError('TMDBClient: TMDB request failed without a response', error, { url: redactUrl(url) });
         }
         throw error;
       }

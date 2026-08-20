@@ -3,6 +3,7 @@ const { getTmdbClient } = require("../utils/getTmdbClient");
 
 // Fallback languages when TMDB API key is not available
 const FALLBACK_LANGUAGES = require("../static/fallback-languages.json");
+const { logWarning } = require("../utils/logError");
 
 async function getLanguages(config = {}) {
   try {
@@ -24,7 +25,7 @@ async function getLanguages(config = {}) {
     }
     
     // Trata outros erros de API (timeout, network, etc.) com fallback
-    console.warn("Error fetching languages from TMDB, using fallback:", error.message);
+    logWarning("getLanguages: failed to fetch languages from TMDB, using the fallback list", error);
     return FALLBACK_LANGUAGES;
   }
 }

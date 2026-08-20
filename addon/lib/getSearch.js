@@ -59,7 +59,7 @@ async function getSearch(id, type, language, query, config) {
               }
               return null;
             } catch (error) {
-              console.error(`Error fetching details for title "${title}":`, error);
+              logError("getSearch: failed to fetch details for an AI search title", error, { title });
               return null;
             }
           },
@@ -67,7 +67,7 @@ async function getSearch(id, type, language, query, config) {
         );
         candidates.push(...results.filter(Boolean));
       } catch (error) {
-        console.error('Error processing AI search with Groq:', error);
+        logError('getSearch: Groq AI search failed', error, { type, language });
       }
     }
     // Fallback to Gemini if no Groq key but Gemini key exists
@@ -94,7 +94,7 @@ async function getSearch(id, type, language, query, config) {
               }
               return null;
             } catch (error) {
-              console.error(`Error fetching details for title "${title}":`, error);
+              logError("getSearch: failed to fetch details for an AI search title", error, { title });
               return null;
             }
           },
@@ -103,7 +103,7 @@ async function getSearch(id, type, language, query, config) {
         candidates.push(...results.filter(Boolean));
 
       } catch (error) {
-        console.error('Error processing AI search with Gemini:', error);
+        logError('getSearch: Gemini AI search failed', error, { type, language });
       }
     }
   }
@@ -260,7 +260,7 @@ async function getSearch(id, type, language, query, config) {
         if (result.meta) result.meta.tmdb_id = item.id;
         return result.meta;
       } catch (err) {
-        console.error(`Error fetching metadata for search result ${item.id}:`, err.message);
+        logError("getSearch: failed to fetch metadata for a search result", err, { itemId: item.id });
         return null; // rateLimitedMapFiltered filters out nulls
       }
     },

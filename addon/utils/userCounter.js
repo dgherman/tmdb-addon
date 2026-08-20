@@ -1,5 +1,6 @@
 const { cache, redisInstance, ramUserCounterCache } = require('../lib/getCache');
 const crypto = require('crypto');
+const { logError } = require('./logError');
 const https = require('https');
 const http = require('http');
 
@@ -97,7 +98,7 @@ async function trackUser(req) {
       }
     }
   } catch (error) {
-    console.error('Error tracking user:', error);
+    logError('userCounter: failed to track the user', error);
   }
   
   return false;
@@ -120,7 +121,7 @@ async function incrementUserCount() {
       }
     }
   } catch (error) {
-    console.error('Error incrementing user count:', error);
+    logError('userCounter: failed to increment the user count', error);
   }
 }
 
@@ -137,7 +138,7 @@ async function getUserCount() {
       return parseInt(count || '0', 10) || 0;
     }
   } catch (error) {
-    console.error('Error getting user count:', error);
+    logError('userCounter: failed to get the user count', error);
     return 0;
   }
 }
@@ -188,7 +189,7 @@ async function trackExternalUsers(count, instanceId) {
       }
     }
   } catch (error) {
-    console.error('Error tracking external users:', error);
+    logError('userCounter: failed to track external users', error);
   }
 }
 
@@ -247,7 +248,7 @@ async function getAggregatedUserCount() {
         }
       } catch (error) {
         // Se falhar, retorna apenas o count local
-        console.error('Error aggregating external counts:', error);
+        logError('userCounter: failed to aggregate external counts', error);
       }
       
       return aggregatedCount;
@@ -256,7 +257,7 @@ async function getAggregatedUserCount() {
     // Para instâncias não oficiais, retorna apenas o count local
     return baseCount;
   } catch (error) {
-    console.error('Error getting aggregated user count:', error);
+    logError('userCounter: failed to get the aggregated user count', error);
     return 0;
   }
 }
@@ -274,7 +275,7 @@ async function resetUserCount() {
       }
     }
   } catch (error) {
-    console.error('Error resetting user count:', error);
+    logError('userCounter: failed to reset the user count', error);
   }
 }
 
