@@ -1,5 +1,6 @@
 require('dotenv').config()
 const { get } = require('../utils/httpClient')
+const { redactUrl } = require('../utils/logError')
 
 async function getRequestToken() {
   return get(`https://api.themoviedb.org/3/authentication/token/new?api_key=${process.env.TMDB_API}`)
@@ -7,7 +8,7 @@ async function getRequestToken() {
       return res.data
     })
     .catch(err => {
-      return { success: false, status_message: err.message }
+      return { success: false, status_message: redactUrl(err.message) }
     })
 }
 
@@ -17,7 +18,7 @@ async function getSessionId(requestToken) {
       return res.data
     })
     .catch(err => {
-      return { success: false, status_message: err.message }
+      return { success: false, status_message: redactUrl(err.message) }
     })
 }
 

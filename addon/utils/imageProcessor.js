@@ -1,5 +1,6 @@
 const sharp = require('sharp');
 const axios = require('axios');
+const { logError } = require('./logError');
 
 async function blurImage(imageUrl) {
   try {
@@ -14,7 +15,7 @@ async function blurImage(imageUrl) {
 
     return processedImageBuffer;
   } catch (error) {
-    console.error('Error processing image:', error);
+    logError('blurImage: failed to fetch or process the image', error);
     return null;
   }
 }

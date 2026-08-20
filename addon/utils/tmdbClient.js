@@ -37,6 +37,10 @@ class TMDBClient extends MovieDb {
         
         // Trata outros erros HTTP
         if (error.response) {
+          // Only the numeric status and TMDB's own status_message are logged, never
+          // the response or request objects. `url` is the endpoint path built by
+          // moviedb-promise; the API key travels in `params`, so it cannot appear here.
+          // safe-log-reviewed
           console.error(`TMDB API error for ${url}:`, error.response.status, error.response.data?.status_message || error.message);
         } else {
           console.error(`Error in TMDB request for ${url}:`, error.message);

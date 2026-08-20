@@ -1,4 +1,5 @@
 const { GoogleGenerativeAI } = require("@google/generative-ai");
+const { logError } = require("./logError");
 const { withRetry } = require("./rateLimiter");
 
 // Modelo padrão - versão mais recente disponível no free tier
@@ -23,7 +24,7 @@ class GeminiService {
       this.model = this.genAI.getGenerativeModel({ model: this.modelName });
       return true;
     } catch (error) {
-      console.error("Error initializing Gemini:", error);
+      logError("GeminiService: failed to initialize the Gemini client", error);
       return false;
     }
   }
@@ -113,7 +114,7 @@ class GeminiService {
       if (errorMessage.includes('limit: 0')) {
         console.error("Quota do Gemini completamente esgotada. Verifique seu plano no Google AI Studio: https://ai.dev/usage?tab=rate-limit");
       } else {
-        console.error("Error processing AI search:", error.message || error);
+        logError("GeminiService: AI search request failed", error);
       }
       return []; // Return empty array in case of error
     }

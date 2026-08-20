@@ -6,6 +6,7 @@ const { getCatalogPreview } = require("./getCatalogPreview");
 const { fetchMDBListItems, parseMDBListItems } = require("../utils/mdbList");
 const { isMovieReleasedInRegion, isMovieReleasedDigitally } = require("./releaseFilter");
 const { rateLimitedMapFiltered } = require("../utils/rateLimiter");
+const { logError } = require("../utils/logError");
 const CATALOG_TYPES = require("../static/catalog-types.json");
 
 async function getCatalog(type, language, page, id, genre, config) {
@@ -148,7 +149,7 @@ async function getCatalog(type, language, page, id, genre, config) {
     // Limit to 20 results max
     return { metas: metas.slice(0, 20) };
   } catch (error) {
-    console.error(`[getCatalog] Error:`, error);
+    logError("getCatalog: failed to build catalog", error, { type, language, page });
     const host = process.env.HOST_NAME ? process.env.HOST_NAME.replace(/\/$/, '') : '';
     const posterUrl = `${host}/no-content.png?v=${Date.now()}`;
     return {
