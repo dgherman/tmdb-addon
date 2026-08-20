@@ -53,8 +53,97 @@ function getThumbnailUrl(stillPath, hideEpisodeThumbnails, topposterskey = null,
   return baseImageUrl;
 }
 
+async function getEpisodesFromGroup(
+  moviedb,
+  language,
+  tmdbId,
+  imdb_id,
+  difOrder,
+  thumbnailConfig
+) {
+  const { hideEpisodeThumbnails, topposterskey, toppostersConfig } = thumbnailConfig;
+  const episodeGroups = await moviedb.episodeGroup({
+    language: language,
+    id: difOrder.episodeGroupId,
+  });
+
+  return (episodeGroups.groups || [])
+    .map((group) =>
+      (group.episodes || []).map((episode, index) => ({
+        id: difOrder.watchOrderOnly
+          ? `${imdb_id}:${episode.season_number}:${episode.episode_number}`
+          : `${imdb_id}:${group.order}:${index + 1}`,
+        name: episode.name,
+        season: group.order,
+        episode: index + 1,
+        thumbnail: getThumbnailUrl(episode.still_path, hideEpisodeThumbnails, topposterskey, toppostersConfig, tmdbId, group.order, index + 1),
+        overview: episode.overview,
+        description: episode.overview,
+        rating: episode.vote_average,
+        runtime: Utils.parseRunTime(episode.runtime),
+        firstAired: difOrder.watchOrderOnly
+          ? new Date(Date.parse(group.episodes[0].air_date) + index)
+          : new Date(Date.parse(episode.air_date) + index),
+        released: difOrder.watchOrderOnly
+          ? new Date(Date.parse(group.episodes[0].air_date) + index)
+          : new Date(Date.parse(episode.air_date) + index),
+      }))
+    )
+    .reduce((a, b) => a.concat(b), []);
+}
+
+async function getDefaultEpisodes(
+  moviedb,
+  language,
+  tmdbId,
+  imdb_id,
+  seasonString,
+  thumbnailConfig
+) {
+  const { hideEpisodeThumbnails, topposterskey, toppostersConfig } = thumbnailConfig;
+  const episodes = [];
+  await Promise.all(
+    seasonString.map(async (el) => {
+      await moviedb
+        .tvInfo({ id: tmdbId, language, append_to_response: el })
+        .then((res) => {
+          const splitSeasons = el.split(",");
+          splitSeasons.map((season) => {
+            if (res[season]) {
+              res[season].episodes.map((episode, index) => {
+                episodes.push({
+                  id: imdb_id
+                    ? `${imdb_id}:${episode.season_number}:${index + 1}`
+                    : `tmdb:${tmdbId}:${episode.season_number}:${index + 1}`,
+                  name: episode.name,
+                  season: episode.season_number,
+                  number: index + 1,
+                  episode: index + 1,
+                  thumbnail: getThumbnailUrl(episode.still_path, hideEpisodeThumbnails, topposterskey, toppostersConfig, tmdbId, episode.season_number, index + 1),
+                  overview: episode.overview,
+                  description: episode.overview,
+                  rating: episode.vote_average.toString(),
+                  runtime: Utils.parseRunTime(episode.runtime),
+                  firstAired: new Date(
+                    Date.parse(episode.air_date) + episode.season_number
+                  ),
+                  released: new Date(
+                    Date.parse(episode.air_date) + episode.season_number
+                  ),
+                });
+              });
+            }
+          });
+        })
+        .catch(console.error);
+    })
+  );
+  return episodes;
+}
+
 async function getEpisodes(language, tmdbId, imdb_id, seasons, config = {}) {
   const { hideEpisodeThumbnails = false, topposterskey = null, toppostersConfig = null } = config;
+  const thumbnailConfig = { hideEpisodeThumbnails, topposterskey, toppostersConfig };
   const moviedb = getTmdbClient(config);
   const seasonString = genSeasonsString(seasons);
   const tmdbIdStr = String(tmdbId);
@@ -63,74 +152,43 @@ async function getEpisodes(language, tmdbId, imdb_id, seasons, config = {}) {
   imdb_id = !difImdbId ? imdb_id : difImdbId.imdbId;
 
   if (difOrder != undefined) {
-    return await moviedb
-      .episodeGroup({ language: language, id: difOrder.episodeGroupId })
-      .then((episodeGroups) =>
-        episodeGroups.groups
-          .map((group) =>
-            group.episodes.map((episode, index) => ({
-              id: difOrder.watchOrderOnly
-                ? `${imdb_id}:${episode.season_number}:${episode.episode_number}`
-                : `${imdb_id}:${group.order}:${index + 1}`,
-              name: episode.name,
-              season: group.order,
-              episode: index + 1,
-              thumbnail: getThumbnailUrl(episode.still_path, hideEpisodeThumbnails, topposterskey, toppostersConfig, tmdbId, group.order, index + 1),
-              overview: episode.overview,
-              description: episode.overview,
-              rating: episode.vote_average,
-              runtime: Utils.parseRunTime(episode.runtime),
-              firstAired: difOrder.watchOrderOnly
-                ? new Date(Date.parse(group.episodes[0].air_date) + index)
-                : new Date(Date.parse(episode.air_date) + index),
-              released: difOrder.watchOrderOnly
-                ? new Date(Date.parse(group.episodes[0].air_date) + index)
-                : new Date(Date.parse(episode.air_date) + index),
-            }))
-          )
-          .reduce((a, b) => a.concat(b), [])
-      )
-      .catch(console.error);
-  } else {
-    const episodes = [];
-    await Promise.all(
-      seasonString.map(async (el) => {
-        await moviedb
-          .tvInfo({ id: tmdbId, language, append_to_response: el })
-          .then((res) => {
-            const splitSeasons = el.split(",");
-            splitSeasons.map((season) => {
-              if (res[season]) {
-                res[season].episodes.map((episode, index) => {
-                  episodes.push({
-                    id: imdb_id
-                      ? `${imdb_id}:${episode.season_number}:${index + 1}`
-                      : `tmdb:${tmdbId}:${episode.season_number}:${index + 1}`,
-                    name: episode.name,
-                    season: episode.season_number,
-                    number: index + 1,
-                    episode: index + 1,
-                    thumbnail: getThumbnailUrl(episode.still_path, hideEpisodeThumbnails, topposterskey, toppostersConfig, tmdbId, episode.season_number, index + 1),
-                    overview: episode.overview,
-                    description: episode.overview,
-                    rating: episode.vote_average.toString(),
-                    runtime: Utils.parseRunTime(episode.runtime),
-                    firstAired: new Date(
-                      Date.parse(episode.air_date) + episode.season_number
-                    ),
-                    released: new Date(
-                      Date.parse(episode.air_date) + episode.season_number
-                    ),
-                  });
-                });
-              }
-            });
-          })
-          .catch(console.error);
-      })
-    );
-    return episodes;
+    // An alternate episode order is only a presentation preference. If the group
+    // cannot be fetched or carries no usable episodes (for example when TMDB
+    // retires a group id), fall back to the default season order instead of
+    // returning nothing at all.
+    try {
+      const groupEpisodes = await getEpisodesFromGroup(
+        moviedb,
+        language,
+        tmdbId,
+        imdb_id,
+        difOrder,
+        thumbnailConfig
+      );
+
+      if (groupEpisodes.length > 0) {
+        return groupEpisodes;
+      }
+
+      console.error(
+        `getEpisodes: episode group ${difOrder.episodeGroupId} for tmdbId ${tmdbId} (${difOrder.name}) returned no episodes, falling back to the default season order`
+      );
+    } catch (error) {
+      const status = error.response ? error.response.status : error.statusCode;
+      console.error(
+        `getEpisodes: failed to fetch episode group ${difOrder.episodeGroupId} for tmdbId ${tmdbId} (${difOrder.name})${status ? ` [HTTP ${status}]` : ""}: ${error.message}, falling back to the default season order`
+      );
+    }
   }
+
+  return await getDefaultEpisodes(
+    moviedb,
+    language,
+    tmdbId,
+    imdb_id,
+    seasonString,
+    thumbnailConfig
+  );
 }
 
 module.exports = { getEpisodes };
